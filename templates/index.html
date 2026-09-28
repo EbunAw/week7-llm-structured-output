@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Candidate Information Extractor</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <h1>AI Candidate Information Extractor</h1>
+
+        <p>
+            Extract structured candidate information from unstructured text using AI.
+        </p>
+    </div>
+
+
+    <!-- Input Card -->
+    <div class="card">
+
+        <h2>Candidate Information</h2>
+
+        <p class="description">
+            Paste a candidate's information below and let the AI extract the relevant details.
+        </p>
+
+        <textarea
+            id="candidateText"
+            placeholder="Example: Jane Doe is a Product Designer with 4 years of experience. She is skilled in Figma, UX research and prototyping."
+        ></textarea>
+
+        <button id="extractButton" onclick="extractCandidate()">
+            Extract Information
+        </button>
+
+        <div id="loading" class="loading hidden">
+            Extracting candidate information...
+        </div>
+
+        <div id="errorMessage" class="error hidden"></div>
+
+    </div>
+
+
+    <!-- Results Card -->
+    <div id="resultSection" class="card hidden">
+
+        <h2>Extracted Candidate Profile</h2>
+
+        <div class="profile">
+
+            <div class="profile-item">
+                <span class="label">Name</span>
+                <span id="candidateName" class="value"></span>
+            </div>
+
+            <div class="profile-item">
+                <span class="label">Role</span>
+                <span id="candidateRole" class="value"></span>
+            </div>
+
+            <div class="profile-item">
+                <span class="label">Years of Experience</span>
+                <span id="candidateExperience" class="value"></span>
+            </div>
+
+            <div class="profile-item">
+                <span class="label">Skills</span>
+                <div id="candidateSkills" class="skills"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Metrics Card -->
+    <div id="metricsSection" class="card hidden">
+
+        <h2>LLM Usage Metrics</h2>
+
+        <div class="metrics-grid">
+
+            <div class="metric">
+                <span class="metric-label">Latency</span>
+                <span id="latency" class="metric-value">-</span>
+            </div>
+
+            <div class="metric">
+                <span class="metric-label">Total Tokens</span>
+                <span id="totalTokens" class="metric-value">-</span>
+            </div>
+
+            <div class="metric">
+                <span class="metric-label">Estimated Cost</span>
+                <span id="estimatedCost" class="metric-value">-</span>
+            </div>
+
+            <div class="metric">
+                <span class="metric-label">Cost per 100 Requests</span>
+                <span id="costPer100" class="metric-value">-</span>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+async function extractCandidate() {
+
+    const text = document.getElementById("candidateText").value.trim();
+    const button = document.getElementById("extractButton");
+    const loading = document.getElementById("loading");
+    const errorMessage = document.getElementById("errorMessage");
+    const resultSection = document.getElementById("resultSection");
+    const metricsSection = document.getElementById("metricsSection");
+
+    // Reset previous state
+    errorMessage.classList.add("hidden");
+    resultSection.classList.add("hidden");
+    metricsSection.classList.add("hidden");
+
+    if (!text) {
+        errorMessage.textContent = "Please enter candidate information first.";
+        errorMessage.classList.remove("hidden");
+        return;
+    }
+
+    // Disable button while processing
+    button.disabled = true;
+    button.textContent = "Extracting...";
+    loading.classList.remove("hidden");
+
+    const startTime = performance.now();
+
+    try {
+
+        const response = await fetch("/extract", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                text: text
+            })
+        });
+
+        if (!response.ok) {
+    const errorData = await response.json();
+
+    throw new Error(
+        errorData.detail || "The extraction request failed."
+    );
+}
+
+        const data = await response.json();
+
+        const endTime = performance.now();
+        const latency = ((endTime - startTime) / 1000).toFixed(2);
+
+        // Display candidate information
+        document.getElementById("candidateName").textContent = data.name;
+        document.getElementById("candidateRole").textContent = data.role;
+        document.getElementById("candidateExperience").textContent =
+            data.years_of_experience + " years";
+
+        // Display skills
+        const skillsContainer =
+            document.getElementById("candidateSkills");
+
+        skillsContainer.innerHTML = "";
+
+        data.skills.forEach(function(skill) {
+
+            const skillElement = document.createElement("span");
+
+            skillElement.className = "skill";
+            skillElement.textContent = skill;
+
+            skillsContainer.appendChild(skillElement);
+        });
+
+        // Show result
+        resultSection.classList.remove("hidden");
+
+        // Get metrics
+        const metricsResponse = await fetch("/metrics");
+
+        if (metricsResponse.ok) {
+
+            const metrics = await metricsResponse.json();
+
+            document.getElementById("latency").textContent =
+                latency + " s";
+
+            document.getElementById("totalTokens").textContent =
+                metrics.total_tokens;
+
+            document.getElementById("estimatedCost").textContent =
+                "$" + metrics.estimated_total_cost_usd;
+
+            document.getElementById("costPer100").textContent =
+                "$" + metrics.estimated_cost_per_100_requests_usd;
+
+            metricsSection.classList.remove("hidden");
+        }
+
+    } catch (error) {
+
+        errorMessage.textContent = error.message;
+        errorMessage.classList.remove("hidden");
+
+    } finally {
+
+        button.disabled = false;
+        button.textContent = "Extract Information";
+        loading.classList.add("hidden");
+    }
+}
+</script>
+
+</body>
+</html>

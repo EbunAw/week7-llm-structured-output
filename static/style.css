@@ -1,0 +1,42 @@
+.hidden {
+    display: none !important;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #F5F7F7;
+    color: #202020;
+    min-height: 100vh;
+}
+
+button {
+    background: #008C8C;
+    color: #FFFFFF;
+    border: none;
+    padding: 13px 22px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #006666;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #008C8C;
+}
+
+.loading {
+    margin-top: 15px;
+    color: #008C8C;
+}
+
+.error {
+    margin-top: 15px;
+    padding: 12px;
+    background: #FFECEC;
+    color: #C30000;
+    border-radius: 7px;
